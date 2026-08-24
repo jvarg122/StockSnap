@@ -42,5 +42,5 @@ class Move(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     snapshot_date: Mapped[datetime.date] = mapped_column(ForeignKey("snapshots.date"))
     ticker_symbol: Mapped[str] = mapped_column(ForeignKey("tickers.symbol"))
-    move_type: Mapped[str] = mapped_column(String(20))
+    move_type: Mapped[str] = mapped_column(String(20))  # top gainer, top loser, volume spike
     value: Mapped[float] = mapped_column(Numeric(12, 4))

@@ -1,9 +1,7 @@
 import datetime
-
 import requests
 
 from app.config import ALPHA_VANTAGE_API_KEY
-
 BASE_URL = "https://www.alphavantage.co/query"
 
 

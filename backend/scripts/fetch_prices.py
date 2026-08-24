@@ -7,6 +7,7 @@ from app.config import TICKER_INFO, WATCHLIST
 from app.db import SessionLocal
 from app.models import DailyPrice, Ticker
 
+# alpha vantage rate limit fix
 SECONDS_BETWEEN_REQUESTS = 13
 
 
@@ -28,6 +29,7 @@ def upsert_daily_prices(session, symbol: str, series: dict) -> int:
         for date, data in series.items()
     ]
     stmt = insert(DailyPrice).values(rows)
+    # duplicate error
     stmt = stmt.on_conflict_do_nothing(index_elements=["ticker_symbol", "date"])
     result = session.execute(stmt)
     return result.rowcount
