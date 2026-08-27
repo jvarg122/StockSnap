@@ -25,10 +25,11 @@ def test_parses(mock_get):
 
     assert series[datetime.date(2026, 8, 13)] == {"close": 228.1, "volume": 39000000}
 
+#test_
 
 @patch("app.alpha_vantage.requests.get")
 def test_rate_limit(mock_get):
-    mock_get.return_value = make_response({"hit request limit"})
+    mock_get.return_value = make_response({"Note": "hit request limit"})
 
     with pytest.raises(AlphaVantageError, match="rate limited"):
         fetch_daily_series("AAPL")
