@@ -11,7 +11,7 @@ def make_response(payload):
 
 #tests
 @patch("app.alpha_vantage.requests.get")
-def parses_close_volume(mock_get):
+def test_parses(mock_get):
     mock_get.return_value = make_response({
         "Time Series (Daily)": {
             "2026-08-14": {"4. close": "230.5000", "5. volume": "42000000"},
@@ -27,13 +27,13 @@ def parses_close_volume(mock_get):
 
 
 @patch("app.alpha_vantage.requests.get")
-def rate_limit_testing(mock_get):
-    mock_get.return_value = make_response({"hit request limit"})
+def test_rate_limit(mock_get):
+    mock_get.return_value = make_response({"Note": "hit request limit"})
 
     with pytest.raises(AlphaVantageError, match="rate limited"):
         fetch_daily_series("AAPL")
 
-# someone typed a typo or an invalid ticker.
+# someone typed a typo or an invalid ticker
 @patch("app.alpha_vantage.requests.get")
 def test_invalid_ticker(mock_get):
     mock_get.return_value = make_response({"Error Message": "Invalid API call"})
