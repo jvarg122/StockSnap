@@ -2,7 +2,6 @@ import datetime
 from scripts.fetch_prices import upsert_daily_prices, upsert_ticker
 from app.models import DailyPrice, Ticker
 
-
 def test_new_ticker(db_session):
     upsert_ticker(db_session, "AAPL", "Apple", "Technology")
     db_session.commit()
@@ -10,7 +9,6 @@ def test_new_ticker(db_session):
     ticker = db_session.get(Ticker, "AAPL")
     assert ticker.name == "Apple"
     assert ticker.sector == "Technology"
-
 
 def test_ticker_update(db_session):
     upsert_ticker(db_session, "AAPL", "name", "sector")
