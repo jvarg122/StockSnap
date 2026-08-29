@@ -5,9 +5,9 @@ load_dotenv()
 
 ALPHA_VANTAGE_API_KEY = os.environ["ALPHA_VANTAGE_API_KEY"]
 DATABASE_URL = os.environ["DATABASE_URL"]
-# separate DB for tests -- keeps pytest from ever touching real dev data again
-# (see conftest.py; a test run once wiped the real database by accident)
 TEST_DATABASE_URL = os.environ["TEST_DATABASE_URL"]
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 WATCHLIST = [
     "AAPL",

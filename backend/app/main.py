@@ -2,8 +2,10 @@ import datetime
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from app.ai_explain import AIExplainError, explain_move
 from app.db import SessionLocal
 from app.models import Move, Snapshot, Ticker
+from app.sec_edgar import get_filings_near_date
 
 app = FastAPI(title="Stock Snap API")
 
@@ -77,4 +79,32 @@ def get_snapshot(target_date: datetime.date, db: Session = Depends(get_db)):
     return {
         "date": target_date,
         "moves": get_moves_for_date(db, target_date),
+    }
+
+
+# OpenAI call when someone clicks on a specific ticker
+@app.get("/api/explain/{target_date}/{symbol}")
+def explain(target_date: datetime.date, symbol: str, db: Session = Depends(get_db)):
+    move = (
+        db.query(Move)
+        .filter(Move.snapshot_date == target_date, Move.ticker_symbol == symbol)
+        .first()
+    )
+    if move is None:
+        raise HTTPException(status_code=404, detail=f"No move for {symbol} on {target_date}")
+
+    ticker = db.get(Ticker, symbol)
+    filings = get_filings_near_date(symbol, target_date)
+
+    try:
+        explanation = explain_move(
+            symbol, ticker.name, ticker.sector, move.move_type, float(move.value), filings
+        )
+    except AIExplainError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    return {
+        "explanation": explanation,
+        "disclaimer": "StockSnap Analysis. Review recommended.",
+        "filings": filings,
     }
