@@ -1,11 +1,8 @@
-from app.models import DailyPrice
+from app.models import DailyPrice, Move, Ticker
 
 TREND_WINDOW_DAYS = 10  # how far to look back
 
 def get_price_trend(session, symbol: str, target_date) -> dict | None:
-    """Summarizes a ticker's price direction over the trailing N days, ending on
-    target_date. Lets the "why did it move" explanation distinguish a sudden
-    spike from the continuation of a trend that was already building."""
     rows = (
         session.query(DailyPrice.date, DailyPrice.close)
         .filter(
@@ -52,4 +49,37 @@ def get_price_trend(session, symbol: str, target_date) -> dict | None:
         "pctChange": round(pctChange, 2),
         "upDays": upDays,
         "downDays": downDays,
+    }
+
+def get_sector_context(session, symbol: str, target_date) -> dict | None:
+    ticker = session.get(Ticker, symbol)
+    if ticker is None:
+        return None
+
+    other_moves = (
+        session.query(Move, Ticker)
+        .join(Ticker, Move.ticker_symbol == Ticker.symbol)
+        .filter(
+            Move.snapshot_date == target_date,
+            Ticker.sector == ticker.sector,
+            Move.ticker_symbol != symbol,
+        )
+        .all()
+    )
+
+    otherMovers = [] #
+
+    for move, _ in other_moves:
+        mover = {
+            "symbol": move.ticker_symbol,
+            "moveType": move.move_type,
+            "value": float(move.value)
+        }
+
+        otherMovers.append(mover)
+
+    return {
+        "sector": ticker.sector,
+        "otherMoversCount": len(other_moves),
+        "otherMovers": otherMovers,
     }
