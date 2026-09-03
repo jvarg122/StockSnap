@@ -6,6 +6,7 @@ from app.move_context import get_price_trend, get_sector_context
 from app.sec_edgar import get_filingsNear
 
 MODEL = "gpt-4o-mini"
+MaxTool = 4 #fix loop
 
 # tool schemas for the model
 TOOLS = [
@@ -60,7 +61,7 @@ could actually check. Ground your final answer ONLY in what the tools return. If
 nothing useful turns up, say plainly that the cause isn't confirmed by the
 available data, rather than inventing a reason.
 
-Keep your final answer to 2-3 sentences, plain English, no bullet points. Never
+Keep your final answer to 2-3 sentences, English, no bullet points. Never
 give investment advice, a prediction, or a buy/sell opinion -- you're explaining
 what already happened, not what to do about it."""
 
@@ -91,7 +92,7 @@ Investigate using your available tools, then explain this move.""" #instruction
     # tool calling agent 
 
     try:
-        while True:
+        for _ in range(MaxTool):
             response = client.chat.completions.create(
                 model=MODEL,
                 messages=messages,
