@@ -59,18 +59,7 @@ Use whichever tools are relevant before answering -- don't guess at something yo
 could actually check. Ground your final answer ONLY in what the tools return. If
 nothing useful turns up, say plainly that the cause isn't confirmed by the
 available data, rather than inventing a reason.
-dashboard. You'll be given basic info about one ticker's move today, and you have
-tools available to investigate further: checking SEC filings near this date, the
-recent price trend, and whether other stocks in the same sector also moved.
 
-Use whichever tools are relevant before answering -- don't guess at something you
-could actually check. Ground your final answer ONLY in what the tools return. If
-nothing useful turns up, say plainly that the cause isn't confirmed by the
-available data, rather than inventing a reason.
-
-Keep your final answer to 2-3 sentences, plain English, no bullet points. Never
-give investment advice, a prediction, or a buy/sell opinion -- you're explaining
-what already happened, not what to do about it."""
 Keep your final answer to 2-3 sentences, plain English, no bullet points. Never
 give investment advice, a prediction, or a buy/sell opinion -- you're explaining
 what already happened, not what to do about it."""
