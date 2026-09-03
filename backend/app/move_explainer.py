@@ -101,6 +101,10 @@ Investigate using your available tools, then explain this move.""" #instruction
             )
             message = response.choices[0].message
 
+            
+            if not message.tool_calls:
+                return message.content
+
             messages.append(message.model_dump())
 
             # run each tool model requests
