@@ -7,6 +7,7 @@ from app.db import SessionLocal
 from app.models import Move, Snapshot, Ticker
 from app.sec_edgar import get_filingsNear
 
+
 app = FastAPI(title="Stock Snap API")
 
 def get_db():
@@ -94,11 +95,10 @@ def explain(target_date: datetime.date, symbol: str, db: Session = Depends(get_d
         raise HTTPException(status_code=404, detail=f"No move for {symbol} on {target_date}")
 
     ticker = db.get(Ticker, symbol)
-    filings = get_filingsNear(symbol, target_date)
 
     try:
         explanation = explain_move(
-            symbol, ticker.name, ticker.sector, move.move_type, float(move.value), filings
+            db, symbol, ticker.name, ticker.sector, move.move_type, float(move.value), target_date
         )
     except ExplainError as e:
         raise HTTPException(status_code=503, detail=str(e))
@@ -106,5 +106,4 @@ def explain(target_date: datetime.date, symbol: str, db: Session = Depends(get_d
     return {
         "explanation": explanation,
         "disclaimer": "StockSnap Analysis. Review recommended.",
-        "filings": filings,
     }
