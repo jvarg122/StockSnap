@@ -1,5 +1,4 @@
 import json
-import json
 from openai import APIStatusError, OpenAI
 from app.config import OPENAI_API_KEY
 from app.move_context import get_price_trend, get_sector_context
@@ -13,7 +12,7 @@ TOOLS = [
     {
         "type": "function",
         "function": {
-            "companyName": "get_filings",
+            "name": "get_filings",
             "description": "Get SEC filings for this ticker filed within a day of the move's date. Use this to check for an 8-K (material event) or earnings-related filing that might explain the move.",
             "parameters": {"type": "object", "properties": {}, "required": []},
         },
@@ -21,7 +20,7 @@ TOOLS = [
     {
         "type": "function",
         "function": {
-            "companyName": "get_price_trend",
+            "name": "get_price_trend",
             "description": "Get this ticker's price trend over the trailing 10 days, ending on the move's date. Use this to see whether today's move was a sudden spike or part of a longer building trend.",
             "parameters": {"type": "object", "properties": {}, "required": []},
         },
@@ -29,7 +28,7 @@ TOOLS = [
     {
         "type": "function",
         "function": {
-            "companyName": "get_sector_context",
+            "name": "get_sector_context",
             "description": "Check whether other tickers in the same sector also moved on the same date. Use this to tell apart a company-specific move from a sector-wide move.",
             "parameters": {"type": "object", "properties": {}, "required": []},
         },
@@ -110,9 +109,9 @@ Investigate using your available tools, then explain this move.""" #instruction
             # run each tool model requests
             for tool_call in message.tool_calls:
                 result = run_tool(
-                    tool_call.function.companyName, 
-                    session, 
-                    symbol, target_date) 
+                    tool_call.function.name,
+                    session,
+                    symbol, target_date)
 
                 messages.append({
                     "role": "tool",
@@ -126,7 +125,6 @@ Investigate using your available tools, then explain this move.""" #instruction
             messages=messages, 
             max_tokens=300
         )
-        return response.choices[0].message.content
         return response.choices[0].message.content
 
     except APIStatusError as e:
