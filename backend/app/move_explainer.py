@@ -1,3 +1,4 @@
+import json
 from openai import APIStatusError, OpenAI
 from app.config import OPENAI_API_KEY
 from app.move_context import get_price_trend, get_sector_context
@@ -49,23 +50,24 @@ def run_tool(tool_name: str, session, symbol: str, target_date):
     return {"error": f"unknown tool: {tool_name}"}
 
 prompt = """You explain daily stock price/volume movements for a stock-tracking
-dashboard. You will be given real data about one ticker's move today and any SEC filings
-found near that date. nothing else.
+dashboard. You'll be given basic info about one ticker's move today, and you have
+tools available to investigate further: checking SEC filings near this date, the
+recent price trend, and whether other stocks in the same sector also moved.
 
-Ground your answer ONLY in the data given. If a relevant filing exists (especially an 8-K,
-which companies file for material events), mention it as a plausible reason. If no filing
-is present, say plainly that the cause isn't confirmed by the available data, and note the
-move itself without inventing a reason.
+Use whichever tools are relevant before answering -- don't guess at something you
+could actually check. Ground your final answer ONLY in what the tools return. If
+nothing useful turns up, say plainly that the cause isn't confirmed by the
+available data, rather than inventing a reason.
 
-Keep it to 2-3 sentences, English, no bullet points. Never give investment advice,
-a prediction, or a buy/sell opinion. you're explaining what already happened, not what to
-do about it."""
+Keep your final answer to 2-3 sentences, plain English, no bullet points. Never
+give investment advice, a prediction, or a buy/sell opinion -- you're explaining
+what already happened, not what to do about it."""
 
 class ExplainError(Exception):
     pass
 
-def explain_move(symbol: str, name: str, sector: str, move_type: str,
-                 value: float, filings: list[dict]) -> str:
+def explain_move(session, symbol: str, name: str, sector: str, move_type: str,
+                 value: float, target_date) -> str:
 
     # check if the api key is there
     if not OPENAI_API_KEY:
@@ -73,44 +75,54 @@ def explain_move(symbol: str, name: str, sector: str, move_type: str,
 
     client = OpenAI(api_key=OPENAI_API_KEY)
 
-    # make the filing info into a string
-    if filings:
-        filings_info = ""
-        for f in filings:
-            filings_info += f"- {f['form']} filed {f['filed_date']}\n"
-    else:
-        filings_info = "(no SEC filings found within a day of this move)"
-
     user_prompt = f"""Ticker: {symbol} ({name})
-
 Sector: {sector}
 Move type: {move_type}
 Value: {value}
 
-Recent SEC filings near this date:
-{filings_info}"""
+Investigate using your available tools, then explain this move.""" #instruction
+
+    messages = [
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    # tool calling agent 
 
     try:
+        while True:
+            response = client.chat.completions.create(
+                model=MODEL,
+                messages=messages,
+                tools=TOOLS,
+                max_tokens= 150,
+            )
+            message = response.choices[0].message
+
+            messages.append(message.model_dump())
+
+            # run each tool model requests
+            for tool_call in message.tool_calls:
+                result = run_tool(
+                    tool_call.function.name, 
+                    session, 
+                    symbol, target_date) 
+
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps(result, default=str),
+                })
+
+        # answer after tool loop ends 
         response = client.chat.completions.create(
-            model= MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": prompt
-                },
-                {
-                    "role": "user",
-                    "content": user_prompt
-                }
-            ],
+            model=MODEL, 
+            messages=messages, 
             max_tokens=150
         )
+        return response.choices[0].message.content
 
     except APIStatusError as e:
         raise ExplainError(
             f"OpenAI request failed: {e.message}"
         ) from e
-
-    answer = response.choices[0].message.content
-
-    return answer
