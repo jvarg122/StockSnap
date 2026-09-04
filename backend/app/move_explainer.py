@@ -1,5 +1,6 @@
 import json
 from openai import APIStatusError, OpenAI
+from app.alpha_vantage import AlphaVantageError, fetch_news
 from app.config import OPENAI_API_KEY
 from app.move_context import get_price_trend, get_sector_context
 from app.sec_edgar import get_filingsNear
@@ -33,6 +34,14 @@ TOOLS = [
             "parameters": {"type": "object", "properties": {}, "required": []},
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_news",
+            "description": "Get recent news headlines (with sources, links, and sentiment) for this ticker within a day of the move's date. Use this to check for a news-driven cause like a product announcement, analyst rating change, or lawsuit.",
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
 ]
 
 def run_tool(pick_tool: str, session, symbol: str, target_date):
@@ -48,12 +57,19 @@ def run_tool(pick_tool: str, session, symbol: str, target_date):
     if pick_tool == "get_sector_context":
         return get_sector_context(session, symbol, target_date)
 
+    if pick_tool == "get_news":
+        try:
+            return fetch_news(symbol, target_date)
+        except AlphaVantageError as e:
+            return {"error": f"news unavailable: {e}"}
+
     return {"error": f"unknown tool: {pick_tool}"}
 
 prompt = """You explain daily stock price/volume movements for a stock-tracking
 dashboard. You'll be given basic info about one ticker's move today, and you have
 tools available to investigate further: checking SEC filings near this date, the
-recent price trend, and whether other stocks in the same sector also moved.
+recent price trend, whether other stocks in the same sector also moved, and
+recent news headlines about the ticker.
 
 Use whichever tools are relevant before answering -- don't guess at something you
 could actually check. Ground your final answer ONLY in what the tools return. If
