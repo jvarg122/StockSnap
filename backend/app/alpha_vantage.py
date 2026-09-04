@@ -64,6 +64,11 @@ def fetch_news(symbol: str, target_date: datetime.date, days_window: int = 1) ->
 
         timeout=10,
     )
+    
+    if "Note" in body:
+        raise AlphaVantageError(
+            f"rate limited while fetching news for {symbol}: {body['Note']}"
+        )
 
     body = response.json()
 
