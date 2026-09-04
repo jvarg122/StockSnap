@@ -64,13 +64,17 @@ def fetch_news(symbol: str, target_date: datetime.date, days_window: int = 1) ->
 
         timeout=10,
     )
-    
+    response.raise_for_status()
+    body = response.json()
+
     if "Note" in body:
         raise AlphaVantageError(
             f"rate limited while fetching news for {symbol}: {body['Note']}"
         )
-
-    body = response.json()
+    if "Information" in body:
+        raise AlphaVantageError(
+            f"news request rejected for {symbol}: {body['Information']}"
+        )
 
     feed = body.get("feed", [])
 
