@@ -1,10 +1,10 @@
 import datetime
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
-from app.config import WATCHLIST
+from app.config import TICKER_INFO, WATCHLIST
 from app.db import SessionLocal
 from app.models import DailyPrice, Move, Snapshot
-from app.moves import compute_ticker_metrics, find_volume_spikes, rank_top_movers
+from app.moves import compute_ticker_metrics, find_relative_performance, find_volume_spikes, rank_top_movers
 
 def lastprice_date(session) -> datetime.date | None:
     #whatever day fetch_prices last grabbed is today
@@ -34,19 +34,22 @@ def replaceMoves_date(session, target_date: datetime.date, move_rows: list[dict]
     if move_rows:
         session.execute(insert(Move), move_rows)
         
-# label gainer or loser or spike
-def label(target_date: datetime.date, pct_changes: dict, volume_ratios: dict) -> list[dict]:
+# label gainer or loser or spike or relative performance
+def label(target_date: datetime.date, pct_changes: dict, volume_ratios: dict, sectors: dict) -> list[dict]:
     gainers, losers = rank_top_movers(pct_changes)
     spikes = find_volume_spikes(volume_ratios)
+    relative_performance = find_relative_performance(pct_changes, sectors)
     move_rows = []
     for symbol, value in gainers:
 
         move_rows.append({"snapshot_date": target_date, "ticker_symbol": symbol, "move_type": "top_gainer", "value": value})
-        
+
     for symbol, value in losers:
         move_rows.append({"snapshot_date": target_date, "ticker_symbol": symbol, "move_type": "top_loser", "value": value})
     for symbol, value in spikes:
         move_rows.append({"snapshot_date": target_date, "ticker_symbol": symbol, "move_type": "volume_spike", "value": value})
+    for symbol, value in relative_performance:
+        move_rows.append({"snapshot_date": target_date, "ticker_symbol": symbol, "move_type": "relative_performance", "value": value})
     return move_rows
 
 
@@ -76,7 +79,8 @@ def main() -> None:
             if metrics["volume_ratio"] is not None:
                 volume_ratios[symbol] = metrics["volume_ratio"]
 
-        move_rows = label(target_date, pct_changes, volume_ratios)
+        sectors = {symbol: info["sector"] for symbol, info in TICKER_INFO.items()}
+        move_rows = label(target_date, pct_changes, volume_ratios, sectors)
         upsert_snapshot(session, target_date)
         replaceMoves_date(session, target_date, move_rows)
         session.commit()
