@@ -83,6 +83,7 @@ def get_snapshot(target_date: datetime.date, db: Session = Depends(get_db)):
     }
 
 
+
 # OpenAI call when someone clicks on a specific ticker
 @app.get("/api/explain/{target_date}/{symbol}")
 def explain(target_date: datetime.date, symbol: str, db: Session = Depends(get_db)):
