@@ -3,7 +3,8 @@ import datetime
 TOP_N = 5
 WINDOW_DAYS = 20  # how far back to look for the volume average
 MIN_DAYS = 5  # need at least this many days sample size
-SPIKE_THRESHOLD = 2.0 
+SPIKE_THRESHOLD = 2.0
+RELATIVE_PERF_THRESHOLD = 3.0 
 
 def pct_change(prev_close, close):
     return (close - prev_close) / prev_close * 100
@@ -51,3 +52,27 @@ def find_volume_spikes(volume_ratios, threshold=SPIKE_THRESHOLD):
     spikes = [(symbol, ratio) for symbol, ratio in volume_ratios.items() if ratio >= threshold]
     spikes.sort(key=lambda kv: kv[1], reverse=True)
     return spikes
+
+
+def find_relative_performance(pct_changes, sectors, threshold=RELATIVE_PERF_THRESHOLD):
+    sector_changes = {} #group by sector
+    for symbol, change in pct_changes.items():
+        sector = sectors.get(symbol)
+        if sector is None:
+            continue
+        sector_changes.setdefault(sector, []).append(change)
+
+    sector_avg = {sector: sum(values) / len(values) for sector, values in sector_changes.items()} #stock's own % change - sector average % change
+    
+    # compare each stock to its sector
+    relative_performance = []
+    for symbol, change in pct_changes.items():
+        sector = sectors.get(symbol)
+        if sector is None:
+            continue
+        deviation = change - sector_avg[sector]
+        if abs(deviation) >= threshold:
+            relative_performance.append((symbol, round(deviation, 2)))
+
+    relative_performance.sort(key=lambda kv: abs(kv[1]), reverse=True)
+    return relative_performance
